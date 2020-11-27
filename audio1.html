@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf8" />
+  <title>audiomix</title>
+</head>
+<body>
+  hello
+  <div>
+    <label for="audio_file">音声ファイル</label>
+    <input type="file" accept="audio/*" id="audiofile" onchange="loadAudio()" />
+    <button id="load_button" onclick="loadAudio()">load</button>
+    <button id="play_button" onclick="playAudio()">play</button>
+    <br />
+    <audio id="audio_playback" controls="1" width="200px" height="80px" />
+  </div>
+</body>
+<script>
+  // ---- init ----
+  let audioContext = null;
+  const audioFileInput = document.getElementById('audiofile');
+  const audioElement = document.getElementById('audio_playback');
+  let audioSourceBuffer = null;
+  
+  function loadAudio() {
+    if (! audioContext) {
+      audioContext = new AudioContext();
+    }
+
+    // --- file ---
+    if (audioFileInput.files.length == 0) {
+      console.warn('file not selected');
+      return;
+    }
+
+    const audioFileToPlay = audioFileInput.files[0];
+    console.log(audioFileToPlay);
+
+    loadLocalAudio(audioFileToPlay);
+  }
+
+  function playAudio() {
+    const audioOutput = audioContext.createMediaStreamDestination();
+    const mediaStream = audioOutput.stream;
+    const audioGain = audioContext.createGain();
+    audioGain.gain.value = 0.2; // Gain (0 - 1)
+    audioGain.connect(audioOutput);
+
+
+    // source を作成
+    audioSource = audioContext.createBufferSource();
+    audioSource.buffer = audioSourceBuffer;
+    audioSource.loop　= true;
+    audioSource.connect(audioGain);
+
+    // 開始
+    audioSource.start(0);
+
+    // モニター用出力
+    //audioGain.connect(audioContext.destination);
+
+    // エレメント出力
+    playMedia(audioElement, mediaStream, 0.5);
+  }
+
+  function loadLocalAudio(file) {    
+    let reader = new FileReader;
+    reader.readAsArrayBuffer(file);
+    reader.onload = function(evt) {
+      console.log('reader.onload(), evt:', evt);
+      audioContext.decodeAudioData(reader.result, function(buffer) {
+        //playAudioContext(buffer);
+        audioSourceBuffer = buffer;
+        console.log('buffer ready');
+      });
+    }
+    reader.onloadend = function(evt) {
+      console.log('reader.onloadend(), evt:', evt);
+    }
+    reader.onloadstart = function(evt) {
+      console.log('reader.onloadstart(), evt:', evt);
+    }
+  }
+
+function playMedia(element, stream, volume = 0) {
+  element.srcObject = stream;
+  element.play().catch(err => console.error('Media Play Error:', err));
+  element.volume = volume;
+}
+
+</script>
+</html>

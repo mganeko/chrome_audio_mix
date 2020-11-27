@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf8" />
+  <title>audiomix</title>
+</head>
+<body>
+  hello
+  <div>
+    <label for="audio_file">Audio File</label>
+    <input type="file" accept="audio/*" id="audiofile" onchange="loadAudio()" />
+    <!--
+    <button id="load_button" onclick="loadAudio()">load</button>
+    -->
+    <button id="play_button" onclick="playAudio()" disabled>play</button>
+    <br />
+    Audio Gain: <input type="range" id="audio_file_range" min="0" max="100" value="80" step="1" onchange="changeAudioFileGain()"> Max
+    &nbsp;&nbsp;
+    <input type="checkbox" id="playback_check" onchange="togglePlayback()" checked>Playback</input>
+    <br />
+    <br />
+    <button id="mix_button" onclick="startMixedStream()">start media & mix</button><br />
+    <video id="local_video" controls="1" width="240px" height="180px" style="border: solid black 1px"></video><br />
+    Balance: Device <input type="range" id="mix_range" min="0" max="100" value="50" step="1" onchange="changeMixGain()"> File <br />
+  </div>
+</body>
+<script>
+  "use strict"
+
+  // ---- init ----
+  const audioFileInput = document.getElementById('audiofile');
+
+  const videoElement = document.getElementById('local_video');
+  const audioFileRange = document.getElementById('audio_file_range');
+  const playbackCheck = document.getElementById('playback_check');
+  const mixRange = document.getElementById('mix_range');
+  
+  const audioEnv = {};
+  initAudioEnv(audioEnv);
+
+  // ----
+
+  function initAudioEnv(env) {
+    // audioContext
+    env.audioContext = null;
+
+    // audio file
+    env.audioSourceBuffer = null;
+    env.audioSource = null;
+    env.audioSourceGain = null;
+
+    // device
+    env.deviceStream = null;
+    env.deviceSource = null;
+
+    // -- mix --
+    env.deviceGain = null;
+    env.audioGain = null;
+    env.mixedOutput = null;
+    env.mixedStream = null;
+  }
+
+  function getAudioEnv() {
+    return audioEnv;
+  }
+
+  function prepareAudioContext(env) {
+    if (! env.audioContext) {
+      env.audioContext = new AudioContext();
+    }
+
+    return env.audioContext;
+  }
+  
+
+
+  
+  /*
+  let audioContext = null;
+  let audioSourceBuffer = null;
+  let audioSource = null;
+  let audioSourceGain = null;
+
+  let deviceStream = null;
+  //let audioStream = null;
+  let deviceSource = null;
+  let deviceGain = null;
+  let audioGain = null;
+
+  let mixedOutput = null;
+  let mixedStream = null;
+  */
+  
+  
+  function startMixedStream() {
+    const env = getAudioEnv();
+    playbakOff();
+
+    navigator.mediaDevices.getUserMedia({video:true, audio:true})
+    .then(stream => {
+      env.deviceStream = stream;
+      //mixedStream = prepareMixStream(deviceStream, audioSource);
+      env.mixedStream = prepareMixStream(env, env.deviceStream, env.audioSourceGain);
+      playMedia(videoElement, env.mixedStream, 0.4);
+    })
+    .catch(err => {
+      console.error('UserMedia ERROR:', err);
+    })
+  }
+
+  function prepareMixStream(env, stream, source) {
+    const audioContext = prepareAudioContext(env);
+    const mixStream = new MediaStream();
+
+    // --- video track ---
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack) {
+      mixStream.addTrack(videoTrack);
+    }
+
+    // --- audio track ---
+    // -- device --
+    const deviceSource = audioContext.createMediaStreamSource(stream);
+    const deviceGain = audioContext.createGain();
+    deviceGain.gain.value = 0.5;
+    deviceSource.connect(deviceGain);
+    env.deviceSource = deviceSource;
+    env.deviceGain = deviceGain;
+
+    // -- audio file --
+    const audioGain = audioContext.createGain();
+    audioGain.gain.value = 0.5;
+    source.connect(audioGain);
+    env.audioGain = audioGain;
+
+    // -- mix --
+    const mixedOutput = audioContext.createMediaStreamDestination();
+    const mediaStream = mixedOutput.stream;
+    deviceGain.connect(mixedOutput);
+    audioGain.connect(mixedOutput);
+    env.mixedOutput = mixedOutput;
+
+    // ---- new media stream --
+    const autioTrack = mediaStream.getAudioTracks()[0];
+    if(autioTrack) {
+      mixStream.addTrack(autioTrack);
+    }
+    else {
+      console.error('Mix Audio ERROR');
+    }
+
+    return mixStream;
+  }
+
+  function changeMixGain() {
+    const env = getAudioEnv();
+    const deviceGain = env.deviceGain;
+    const audioGain = env.audioGain;
+
+    const mixValue = mixRange.value;
+    if (deviceGain) {
+      deviceGain.gain.value = (100 - mixValue) / 100.0;
+    }
+    if (audioGain) {
+      audioGain.gain.value = (mixValue) / 100.0;
+    }
+  }
+
+  function changeAudioFileGain() {
+    const env = getAudioEnv();
+    const audioSourceGain = env.audioSourceGain;
+    if (audioSourceGain) {
+      audioSourceGain.gain.value = (audioFileRange.value / 100.0)
+    }
+  }
+
+  function loadAudio() {
+    const env = getAudioEnv();
+    const audioContext = prepareAudioContext(env);
+
+    // --- file ---
+    if (audioFileInput.files.length == 0) {
+      console.warn('file not selected');
+      return;
+    }
+    const audioFileToPlay = audioFileInput.files[0];
+    console.log(audioFileToPlay);
+
+    // --- load 
+    disableElement('play_button')
+    loadLocalAudio(audioFileToPlay, env).then(buffer => {
+      env.audioSourceBuffer = buffer;
+      enabelElement('play_button')
+    })
+    .catch(err => {
+      console.error('load audio file ERROR:', err);
+    })
+  }
+
+  function playAudio() {
+    const env = getAudioEnv();
+    const audioContext = prepareAudioContext(env);
+    const source = startAudioNode(env);
+    if (playbackCheck.checked) {
+      // モニター用出力
+      source.connect(audioContext.destination);
+    }
+  }
+
+  function togglePlayback() {
+    const env = getAudioEnv();
+    const audioContext = prepareAudioContext(env);
+    if (playbackCheck.checked) {
+      // モニター用出力
+      env.audioSourceGain.connect(audioContext.destination);
+    }
+    else {
+      env.audioSourceGain.disconnect(audioContext.destination);
+    }
+  }
+
+  function playbakOff() {
+    playbackCheck.checked = false;
+    const env = getAudioEnv();
+    const audioSourceGain = env.audioSourceGain;
+    if (audioSourceGain) {
+      audioSourceGain.disconnect();
+    }
+  }
+
+
+  function startAudioNode(env) {
+    // audioSource(aoudoSoruceBuffer) --> audioSourceGain
+    // return audioSoruceGain
+
+    const audioContext = prepareAudioContext(env);
+
+    if (! env.audioSourceGain) {
+      env.audioSourceGain = audioContext.createGain();
+    }
+    else {
+      // -- すでにAudio再生中の場合は、再生停止、切り離す
+      if (env.audioSource) {
+        // disconnect
+        env.audioSource.disconnect(env.audioSourceGain);
+        env.audioSource.stop();
+        env.audioSource = null;
+      }
+    }
+
+    const audioSourceGain = env.audioSourceGain;
+    audioSourceGain.gain.value = (audioFileRange.value / 100.0);
+    //env.audioSourceGain = audioSourceGain;
+
+    // source を作成
+    const audioSource = audioContext.createBufferSource();
+    audioSource.buffer = env.audioSourceBuffer;
+    audioSource.loop　= true;
+    audioSource.connect(audioSourceGain);
+    // if (env.audioSource) {
+    //   // disconnect
+    //   env.audioSource.disconnect(env.audioSourceGain);
+    //   env.audioSource.stop();
+    //   env.audioSource = null;
+    // }
+    env.audioSource = audioSource;
+
+    // 開始
+    audioSource.start(0);
+
+    // 音声ファイルの出力ノードを返す
+    return audioSourceGain;
+  }
+
+  function loadLocalAudio(file, env) {
+    const reader = new FileReader;
+    reader.readAsArrayBuffer(file);
+    return new Promise((resolve, reject) => {
+      reader.onload = function(evt) {
+        const audioContext = prepareAudioContext(env);
+        console.log('reader.onload(), evt:', evt);
+        audioContext.decodeAudioData(reader.result)
+        .then(buffer => {
+          console.log('buffer ready');
+          resolve(buffer);
+        })
+        .catch(err => {
+          reject(err);
+        })
+      }
+      reader.onloadend = function(evt) {
+        console.log('reader.onloadend(), evt:', evt);
+      }
+      reader.onloadstart = function(evt) {
+        console.log('reader.onloadstart(), evt:', evt);
+      }
+    })
+  }
+
+function playMedia(element, stream, volume = 0) {
+  element.srcObject = stream;
+  element.play().catch(err => console.error('Media Play Error:', err));
+  element.volume = volume;
+}
+
+function enabelElement(id) {
+  let element = document.getElementById(id);
+  if (element) {
+    element.removeAttribute('disabled');
+  }
+}
+
+function disableElement(id) {
+  let element = document.getElementById(id);
+  if (element) {
+    element.setAttribute('disabled', '1');
+  }
+}
+
+</script>
+</html>
