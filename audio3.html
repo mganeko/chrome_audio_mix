@@ -8,7 +8,7 @@
   hello
   <div>
     <label for="audio_file">Audio File</label>
-    <input type="file" accept="audio/*" id="audiofile" onchange="loadAudio()" />
+    <input type="file" accept="audio/*" id="audio_file" onchange="loadAudio()" />
     <!--
     <button id="load_button" onclick="loadAudio()">load</button>
     -->
@@ -28,7 +28,7 @@
   "use strict"
 
   // ---- init ----
-  const audioFileInput = document.getElementById('audiofile');
+  const audioFileInput = document.getElementById('audio_file');
 
   const videoElement = document.getElementById('local_video');
   const audioFileRange = document.getElementById('audio_file_range');
