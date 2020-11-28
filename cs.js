@@ -10,7 +10,9 @@
 //   - NOT: select device/audio
 //   - DONE: or use device if no audio file selected)
 //   - DONE: clear audio file
-//   - DONE: change function prefix, 
+//   - DONE: change function prefix
+//   - DONE: icon
+//   - DONE: change id prefix
 
 function main() {
   'use strict'
@@ -29,19 +31,19 @@ function main() {
   function _insertPanel(node) {
     try {
       const html_ja =
-        `<div id="gum_panel" style="border: 1px solid blue; position: absolute; left:2px; top:2px;  z-index: 2001; background-color: rgba(192, 250, 192, 0.7);">
-          <div><span id="gum_pannel_button">[+]</span><span id="gum_position_button">[_]</span></div>
-          <div id="gum_control" style="display: none;">
-            <label for="audio_file">Audio File</label>
-            <input type="file" accept="audio/*" id="audio_file" />
-            <button id="clear_file">clear</button>
+        `<div id="camix_gum_panel" style="border: 1px solid blue; position: absolute; left:2px; top:2px;  z-index: 2001; background-color: rgba(192, 250, 192, 0.7);">
+          <div><span id="camix_gum_pannel_button">[+]</span><span id="camix_gum_position_button">[_]</span></div>
+          <div id="camix_gum_control" style="display: none;">
+            <label for="camix_audio_file">Audio File</label>
+            <input type="file" accept="audio/*" id="camix_audio_file" />
+            <button id="camix_clear_file">clear</button>
             <br />
-            Audio Gain: <input type="range" id="audio_file_range" min="0" max="100" value="80" step="1"> Max
+            Audio Gain: <input type="range" id="camix_audio_file_range" min="0" max="100" value="80" step="1"> Max
             &nbsp;&nbsp;
-            <input type="checkbox" id="playback_check" checked>Playback</input>
+            <input type="checkbox" id="camix_playback_check" checked>Playback</input>
             <br />
             <br />
-            Balance: Device <input type="range" id="mix_range" min="0" max="100" value="50" step="1"> Audio File <br />
+            Balance: Device <input type="range" id="camix_mix_range" min="0" max="100" value="50" step="1"> Audio File <br />
           </div>
         </div>`;
       const html_en = html_ja;
@@ -53,21 +55,21 @@ function main() {
         node.insertAdjacentHTML('beforeend', html_en);
       }
 
-      node.querySelector('#audio_file').addEventListener('change', (evt) => {
+      node.querySelector('#camix_audio_file').addEventListener('change', (evt) => {
         //loadAudio();
         loadAndPlay();
       }, false);
 
-      node.querySelector('#clear_file').addEventListener('click', (evt) => {
+      node.querySelector('#camix_clear_file').addEventListener('click', (evt) => {
         _debuglog('clear audio file');
         _clearAudioFile();
       }, false);
 
-      node.querySelector('#audio_file_range').addEventListener('change', (evt) => {
+      node.querySelector('#camix_audio_file_range').addEventListener('change', (evt) => {
         _changeAudioFileGain();
       }, false);
 
-      node.querySelector('#mix_range').addEventListener('change', (evt) => {
+      node.querySelector('#camix_mix_range').addEventListener('change', (evt) => {
         _changeMixGain();
       }, false);
 
@@ -75,16 +77,16 @@ function main() {
       //  _playAudio();
       //}, false);
 
-      node.querySelector('#playback_check').addEventListener('change', (evt) => {
+      node.querySelector('#camix_playback_check').addEventListener('change', (evt) => {
         _togglePlayback();
       }, false);
 
-      node.querySelector('#gum_pannel_button').addEventListener('click', (evt) => {
+      node.querySelector('#camix_gum_pannel_button').addEventListener('click', (evt) => {
         _debuglog('pannel open/close');
         _openClosePanel();
       }, false);
 
-      node.querySelector('#gum_position_button').addEventListener('click', (evt) => {
+      node.querySelector('#camix_gum_position_button').addEventListener('click', (evt) => {
         _debuglog('pannel top/bottom');
         _changePanelPositon();
       }, false)
@@ -98,27 +100,27 @@ function main() {
   function _openClosePanel() {
     panelVisible = (!panelVisible);
     if (panelVisible) {
-      document.getElementById('gum_control').style.display = 'block';
-      document.getElementById('gum_pannel_button').innerText = '[-]';
+      document.getElementById('camix_gum_control').style.display = 'block';
+      document.getElementById('camix_gum_pannel_button').innerText = '[-]';
     }
     else {
-      document.getElementById('gum_control').style.display = 'none';
-      document.getElementById('gum_pannel_button').innerText = '[+]';
+      document.getElementById('camix_gum_control').style.display = 'none';
+      document.getElementById('camix_gum_pannel_button').innerText = '[+]';
     }
   }
 
   function _changePanelPositon() {
     panelPositionTop = (!panelPositionTop);
-    const pannelDiv = document.getElementById('gum_panel');
+    const pannelDiv = document.getElementById('camix_gum_panel');
     if (panelPositionTop) {
       pannelDiv.style.top = '2px';
       pannelDiv.style.bottom = '';
-      document.getElementById('gum_position_button').innerText = '[_]';
+      document.getElementById('camix_gum_position_button').innerText = '[_]';
     }
     else {
       pannelDiv.style.top = '';
       pannelDiv.style.bottom = '2px';
-      document.getElementById('gum_position_button').innerText = '[^]';
+      document.getElementById('camix_gum_position_button').innerText = '[^]';
     }
   }
 
@@ -136,7 +138,7 @@ function main() {
   }
 
   function _showMessage(str) {
-    const span = document.getElementById('message_span');
+    const span = document.getElementById('camix_message_span');
     if (span) {
       span.innerHTML = str;
     }
@@ -256,7 +258,7 @@ function main() {
     const env = _getAudioEnv();
 
     // --- file ---
-    const audioFileInput = document.getElementById('audio_file');
+    const audioFileInput = document.getElementById('camix_audio_file');
     if (audioFileInput.files.length == 0) {
       console.warn('file not selected');
       return;
@@ -287,7 +289,7 @@ function main() {
     }
 
     // --- clear select ---
-    const audioFileInput = document.getElementById('audio_file');
+    const audioFileInput = document.getElementById('camix_audio_file');
     audioFileInput.value = "";
   }
 
@@ -295,7 +297,7 @@ function main() {
   //   const env = _getAudioEnv();
 
   //   // --- file ---
-  //   const audioFileInput = document.getElementById('audio_file');
+  //   const audioFileInput = document.getElementById('camix_audio_file');
   //   if (audioFileInput.files.length == 0) {
   //     console.warn('file not selected');
   //     return;
@@ -317,7 +319,7 @@ function main() {
     const env = _getAudioEnv();
     const audioContext = _prepareAudioContext(env);
     const source = _startAudioNode(env);
-    const playbackCheck = document.getElementById('playback_check');
+    const playbackCheck = document.getElementById('camix_playback_check');
     if (playbackCheck.checked) {
       // モニター用出力
       source.connect(audioContext.destination);
@@ -327,7 +329,7 @@ function main() {
   function _togglePlayback() {
     const env = _getAudioEnv();
     const audioContext = _prepareAudioContext(env);
-    const playbackCheck = document.getElementById('playback_check');
+    const playbackCheck = document.getElementById('camix_playback_check');
     if (playbackCheck.checked) {
       // モニター用出力
       env.audioSourceGain.connect(audioContext.destination);
@@ -338,7 +340,7 @@ function main() {
   }
 
   function _playbakOff() {
-    const playbackCheck = document.getElementById('playback_check');
+    const playbackCheck = document.getElementById('camix_playback_check');
     playbackCheck.checked = false;
     const env = _getAudioEnv();
     const audioSourceGain = env.audioSourceGain;
@@ -348,7 +350,7 @@ function main() {
   }
 
   function _changeMixGain() {
-    const mixRange = document.getElementById('mix_range');
+    const mixRange = document.getElementById('camix_mix_range');
     const env = _getAudioEnv();
     const deviceGain = env.deviceGain;
     const audioGain = env.audioGain;
@@ -363,7 +365,7 @@ function main() {
   }
 
   function _changeAudioFileGain() {
-    const audioFileRange = document.getElementById('audio_file_range');
+    const audioFileRange = document.getElementById('camix_audio_file_range');
     const env = _getAudioEnv();
     const audioSourceGain = env.audioSourceGain;
     if (audioSourceGain) {
@@ -390,7 +392,7 @@ function main() {
       }
     }
 
-    const audioFileRange = document.getElementById('audio_file_range');
+    const audioFileRange = document.getElementById('camix_audio_file_range');
     const audioSourceGain = env.audioSourceGain;
     audioSourceGain.gain.value = (audioFileRange.value / 100.0);
     //env.audioSourceGain = audioSourceGain;
