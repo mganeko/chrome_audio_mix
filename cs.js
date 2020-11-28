@@ -3,9 +3,11 @@
 //  MIT LICENSE
 
 // TODO
-//   stopMedia --> release device Audio (mic) 
-//   OK startMedia without Audio
-//   auto play after load
+//   - DONE: stopMedia --> release device Audio (mic) 
+//   - DONE: startMedia without Audio
+//   - DONE: auto play after load
+//   - soso: with Google Meet --> switch mix from setting option
+//   - select device/audio 
 
 function main() {
   'use strict'
@@ -156,10 +158,12 @@ function main() {
 
     // --- start media ---
     if (withAudio) {
+      _debuglog('use audio file');
       _showMessage('use audio file');
       return _startMixedStream(constraints);
     }
     else {
+      _debuglog('vidoe only. use device');
       _showMessage('vidoe only. use device');
       return navigator.mediaDevices._getUserMedia(constraints);
     }
@@ -233,7 +237,7 @@ function main() {
       return;
     }
     const audioFileToPlay = audioFileInput.files[0];
-    console.log(audioFileToPlay);
+    _debuglog(audioFileToPlay);
 
     // --- load 
     //disableElement('play_button')
@@ -256,7 +260,7 @@ function main() {
       return;
     }
     const audioFileToPlay = audioFileInput.files[0];
-    console.log(audioFileToPlay);
+    _debuglog(audioFileToPlay);
 
     // --- load 
     disableElement('play_button')
@@ -376,10 +380,10 @@ function main() {
     return new Promise((resolve, reject) => {
       reader.onload = function (evt) {
         const audioContext = prepareAudioContext(env);
-        console.log('reader.onload(), evt:', evt);
+        _debuglog('reader.onload(), evt:', evt);
         audioContext.decodeAudioData(reader.result)
           .then(buffer => {
-            console.log('buffer ready');
+            _debuglog('buffer ready');
             resolve(buffer);
           })
           .catch(err => {
@@ -387,10 +391,10 @@ function main() {
           })
       }
       reader.onloadend = function (evt) {
-        console.log('reader.onloadend(), evt:', evt);
+        _debuglog('reader.onloadend(), evt:', evt);
       }
       reader.onloadstart = function (evt) {
-        console.log('reader.onloadstart(), evt:', evt);
+        _debuglog('reader.onloadstart(), evt:', evt);
       }
     })
   }
@@ -433,6 +437,17 @@ function main() {
     const autioTrack = mediaStream.getAudioTracks()[0];
     if (autioTrack) {
       mixStream.addTrack(autioTrack);
+
+      // -- stop device audio --
+      autioTrack._stop = autioTrack.stop;
+      autioTrack.stop = function () {
+        _debuglog('on webaudio track stop');
+        autioTrack._stop();
+        stream.getAudioTracks().forEach(track => {
+          _debuglog('stop device audio track');
+          track.stop();
+        });
+      };
     }
     else {
       console.error('Mix Audio ERROR');
