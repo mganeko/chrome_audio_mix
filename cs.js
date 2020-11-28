@@ -6,8 +6,11 @@
 //   - DONE: stopMedia --> release device Audio (mic) 
 //   - DONE: startMedia without Audio
 //   - DONE: auto play after load
-//   - soso: with Google Meet --> switch mix from setting option
-//   - select device/audio 
+//   - So-so: with Google Meet --> switch mix from setting option
+//   - NOT: select device/audio
+//   - DONE: or use device if no audio file selected)
+//   - DONE: clear audio file
+//   - DONE: change function prefix, 
 
 function main() {
   'use strict'
@@ -31,6 +34,7 @@ function main() {
           <div id="gum_control" style="display: none;">
             <label for="audio_file">Audio File</label>
             <input type="file" accept="audio/*" id="audio_file" />
+            <button id="clear_file">clear</button>
             <br />
             Audio Gain: <input type="range" id="audio_file_range" min="0" max="100" value="80" step="1"> Max
             &nbsp;&nbsp;
@@ -54,20 +58,25 @@ function main() {
         loadAndPlay();
       }, false);
 
+      node.querySelector('#clear_file').addEventListener('click', (evt) => {
+        _debuglog('clear audio file');
+        _clearAudioFile();
+      }, false);
+
       node.querySelector('#audio_file_range').addEventListener('change', (evt) => {
-        changeAudioFileGain();
+        _changeAudioFileGain();
       }, false);
 
       node.querySelector('#mix_range').addEventListener('change', (evt) => {
-        changeMixGain();
+        _changeMixGain();
       }, false);
 
       //node.querySelector('#play_button').addEventListener('click', (evt) => {
-      //  playAudio();
+      //  _playAudio();
       //}, false);
 
       node.querySelector('#playback_check').addEventListener('change', (evt) => {
-        togglePlayback();
+        _togglePlayback();
       }, false);
 
       node.querySelector('#gum_pannel_button').addEventListener('click', (evt) => {
@@ -158,27 +167,43 @@ function main() {
 
     // --- start media ---
     if (withAudio) {
-      _debuglog('use audio file');
-      _showMessage('use audio file');
-      return _startMixedStream(constraints);
+      if (_isAudioFileSelected()) {
+        _debuglog('use audio file');
+        _showMessage('use audio file');
+        return _startMixedStream(constraints);
+      }
+      else {
+        _debuglog('NO audio file, so use device');
+        return navigator.mediaDevices._getUserMedia(constraints);
+      }
     }
     else {
-      _debuglog('vidoe only. use device');
-      _showMessage('vidoe only. use device');
+      _debuglog('video only. use device');
+      _showMessage('video only. use device');
       return navigator.mediaDevices._getUserMedia(constraints);
     }
   }
 
+  function _isAudioFileSelected() {
+    const env = _getAudioEnv();
+    if (env.audioSource) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
   function _startMixedStream(constraints) {
-    const env = getAudioEnv();
-    playbakOff();
+    const env = _getAudioEnv();
+    _playbakOff();
 
     return new Promise((resolve, reject) => {
       navigator.mediaDevices._getUserMedia(constraints)
         .then(stream => {
           env.deviceStream = stream;
-          //mixedStream = prepareMixStream(deviceStream, audioSource);
-          env.mixedStream = prepareMixStream(env, env.deviceStream, env.audioSourceGain);
+          //mixedStream = _prepareMixStream(deviceStream, audioSource);
+          env.mixedStream = _prepareMixStream(env, env.deviceStream, env.audioSourceGain);
           resolve(env.mixedStream);
         })
         .catch(err => {
@@ -191,11 +216,11 @@ function main() {
 
   // -------------- audio ------------------
   const audioEnv = {};
-  initAudioEnv(audioEnv);
+  _initAudioEnv(audioEnv);
 
   // ----
 
-  function initAudioEnv(env) {
+  function _initAudioEnv(env) {
     // audioContext
     env.audioContext = null;
 
@@ -215,11 +240,11 @@ function main() {
     env.mixedStream = null;
   }
 
-  function getAudioEnv() {
+  function _getAudioEnv() {
     return audioEnv;
   }
 
-  function prepareAudioContext(env) {
+  function _prepareAudioContext(env) {
     if (!env.audioContext) {
       env.audioContext = new AudioContext();
     }
@@ -228,7 +253,7 @@ function main() {
   }
 
   function loadAndPlay() {
-    const env = getAudioEnv();
+    const env = _getAudioEnv();
 
     // --- file ---
     const audioFileInput = document.getElementById('audio_file');
@@ -241,41 +266,57 @@ function main() {
 
     // --- load 
     //disableElement('play_button')
-    loadLocalAudio(audioFileToPlay, env).then(buffer => {
+    _loadLocalAudio(audioFileToPlay, env).then(buffer => {
       env.audioSourceBuffer = buffer;
       //enabelElement('play_button');
-      playAudio();
+      _playAudio();
     }).catch(err => {
       console.error('load audio file ERROR:', err);
     })
   }
 
-  function loadAudio() {
-    const env = getAudioEnv();
+  function _clearAudioFile() {
+    const env = _getAudioEnv();
 
-    // --- file ---
-    const audioFileInput = document.getElementById('audio_file');
-    if (audioFileInput.files.length == 0) {
-      console.warn('file not selected');
-      return;
+    // -- すでにAudio再生中の場合は、再生停止、切り離す
+    if (env.audioSource) {
+      // disconnect
+      env.audioSource.disconnect(env.audioSourceGain);
+      env.audioSource.stop();
+      env.audioSource = null;
     }
-    const audioFileToPlay = audioFileInput.files[0];
-    _debuglog(audioFileToPlay);
 
-    // --- load 
-    disableElement('play_button')
-    loadLocalAudio(audioFileToPlay, env).then(buffer => {
-      env.audioSourceBuffer = buffer;
-      enabelElement('play_button')
-    }).catch(err => {
-      console.error('load audio file ERROR:', err);
-    })
+    // --- clear select ---
+    const audioFileInput = document.getElementById('audio_file');
+    audioFileInput.value = "";
   }
 
-  function playAudio() {
-    const env = getAudioEnv();
-    const audioContext = prepareAudioContext(env);
-    const source = startAudioNode(env);
+  // function _loadAudio() {
+  //   const env = _getAudioEnv();
+
+  //   // --- file ---
+  //   const audioFileInput = document.getElementById('audio_file');
+  //   if (audioFileInput.files.length == 0) {
+  //     console.warn('file not selected');
+  //     return;
+  //   }
+  //   const audioFileToPlay = audioFileInput.files[0];
+  //   _debuglog(audioFileToPlay);
+
+  //   // --- load 
+  //   disableElement('play_button')
+  //   _loadLocalAudio(audioFileToPlay, env).then(buffer => {
+  //     env.audioSourceBuffer = buffer;
+  //     enabelElement('play_button')
+  //   }).catch(err => {
+  //     console.error('load audio file ERROR:', err);
+  //   })
+  // }
+
+  function _playAudio() {
+    const env = _getAudioEnv();
+    const audioContext = _prepareAudioContext(env);
+    const source = _startAudioNode(env);
     const playbackCheck = document.getElementById('playback_check');
     if (playbackCheck.checked) {
       // モニター用出力
@@ -283,9 +324,9 @@ function main() {
     }
   }
 
-  function togglePlayback() {
-    const env = getAudioEnv();
-    const audioContext = prepareAudioContext(env);
+  function _togglePlayback() {
+    const env = _getAudioEnv();
+    const audioContext = _prepareAudioContext(env);
     const playbackCheck = document.getElementById('playback_check');
     if (playbackCheck.checked) {
       // モニター用出力
@@ -296,19 +337,19 @@ function main() {
     }
   }
 
-  function playbakOff() {
+  function _playbakOff() {
     const playbackCheck = document.getElementById('playback_check');
     playbackCheck.checked = false;
-    const env = getAudioEnv();
+    const env = _getAudioEnv();
     const audioSourceGain = env.audioSourceGain;
     if (audioSourceGain) {
       audioSourceGain.disconnect();
     }
   }
 
-  function changeMixGain() {
+  function _changeMixGain() {
     const mixRange = document.getElementById('mix_range');
-    const env = getAudioEnv();
+    const env = _getAudioEnv();
     const deviceGain = env.deviceGain;
     const audioGain = env.audioGain;
 
@@ -321,20 +362,20 @@ function main() {
     }
   }
 
-  function changeAudioFileGain() {
+  function _changeAudioFileGain() {
     const audioFileRange = document.getElementById('audio_file_range');
-    const env = getAudioEnv();
+    const env = _getAudioEnv();
     const audioSourceGain = env.audioSourceGain;
     if (audioSourceGain) {
       audioSourceGain.gain.value = (audioFileRange.value / 100.0)
     }
   }
 
-  function startAudioNode(env) {
+  function _startAudioNode(env) {
     // audioSource(aoudoSoruceBuffer) --> audioSourceGain
     // return audioSoruceGain
 
-    const audioContext = prepareAudioContext(env);
+    const audioContext = _prepareAudioContext(env);
 
     if (!env.audioSourceGain) {
       env.audioSourceGain = audioContext.createGain();
@@ -374,12 +415,12 @@ function main() {
     return audioSourceGain;
   }
 
-  function loadLocalAudio(file, env) {
+  function _loadLocalAudio(file, env) {
     const reader = new FileReader;
     reader.readAsArrayBuffer(file);
     return new Promise((resolve, reject) => {
       reader.onload = function (evt) {
-        const audioContext = prepareAudioContext(env);
+        const audioContext = _prepareAudioContext(env);
         _debuglog('reader.onload(), evt:', evt);
         audioContext.decodeAudioData(reader.result)
           .then(buffer => {
@@ -399,8 +440,8 @@ function main() {
     })
   }
 
-  function prepareMixStream(env, stream, source) {
-    const audioContext = prepareAudioContext(env);
+  function _prepareMixStream(env, stream, source) {
+    const audioContext = _prepareAudioContext(env);
     const mixStream = new MediaStream();
 
     // --- video track ---
@@ -456,25 +497,25 @@ function main() {
     return mixStream;
   }
 
-  function playMedia(element, stream, volume = 0) {
-    element.srcObject = stream;
-    element.play().catch(err => console.error('Media Play Error:', err));
-    element.volume = volume;
-  }
+  // function playMedia(element, stream, volume = 0) {
+  //   element.srcObject = stream;
+  //   element.play().catch(err => console.error('Media Play Error:', err));
+  //   element.volume = volume;
+  // }
 
-  function enabelElement(id) {
-    let element = document.getElementById(id);
-    if (element) {
-      element.removeAttribute('disabled');
-    }
-  }
+  // function enabelElement(id) {
+  //   let element = document.getElementById(id);
+  //   if (element) {
+  //     element.removeAttribute('disabled');
+  //   }
+  // }
 
-  function disableElement(id) {
-    let element = document.getElementById(id);
-    if (element) {
-      element.setAttribute('disabled', '1');
-    }
-  }
+  // function disableElement(id) {
+  //   let element = document.getElementById(id);
+  //   if (element) {
+  //     element.setAttribute('disabled', '1');
+  //   }
+  // }
   // -------------- audio ------------------
 
   // -----------------
