@@ -1,5 +1,7 @@
 # Chrome Audio Mix
 
+![アイコン](icon48.png) 
+
 navigator.mediaDevices.getUserMedia()をフックし、マイクの音に音声ファイルをミックスするChrome Extensionです。
 
 Chrome extention for mixing microphone and audo file sound, using hook of navigator.mediaDevices.getUserMedia()
