@@ -13,6 +13,8 @@
 //   - DONE: change function prefix
 //   - DONE: icon
 //   - DONE: change id prefix
+//   - NOT: try no noise-canceling, no-auto-volume, stereo
+//   - use only one gain for audio file
 
 function main() {
   'use strict'
@@ -293,27 +295,6 @@ function main() {
     audioFileInput.value = "";
   }
 
-  // function _loadAudio() {
-  //   const env = _getAudioEnv();
-
-  //   // --- file ---
-  //   const audioFileInput = document.getElementById('camix_audio_file');
-  //   if (audioFileInput.files.length == 0) {
-  //     console.warn('file not selected');
-  //     return;
-  //   }
-  //   const audioFileToPlay = audioFileInput.files[0];
-  //   _debuglog(audioFileToPlay);
-
-  //   // --- load 
-  //   disableElement('play_button')
-  //   _loadLocalAudio(audioFileToPlay, env).then(buffer => {
-  //     env.audioSourceBuffer = buffer;
-  //     enabelElement('play_button')
-  //   }).catch(err => {
-  //     console.error('load audio file ERROR:', err);
-  //   })
-  // }
 
   function _playAudio() {
     const env = _getAudioEnv();
@@ -499,25 +480,6 @@ function main() {
     return mixStream;
   }
 
-  // function playMedia(element, stream, volume = 0) {
-  //   element.srcObject = stream;
-  //   element.play().catch(err => console.error('Media Play Error:', err));
-  //   element.volume = volume;
-  // }
-
-  // function enabelElement(id) {
-  //   let element = document.getElementById(id);
-  //   if (element) {
-  //     element.removeAttribute('disabled');
-  //   }
-  // }
-
-  // function disableElement(id) {
-  //   let element = document.getElementById(id);
-  //   if (element) {
-  //     element.setAttribute('disabled', '1');
-  //   }
-  // }
   // -------------- audio ------------------
 
   // -----------------
