@@ -18,8 +18,8 @@
 
 function main() {
   'use strict'
-  const PRINT_DEBUG_LOG = true;
-  //const PRINT_DEBUG_LOG = false;
+  //const PRINT_DEBUG_LOG = true;
+  const PRINT_DEBUG_LOG = false;
 
   const LANG_TYPE = navigator.language; // en, en-US, ja
   _debuglog('lang=' + LANG_TYPE);
