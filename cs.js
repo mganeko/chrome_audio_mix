@@ -458,15 +458,15 @@ function main() {
     env.mixedOutput = mixedOutput;
 
     // ---- new media stream --
-    const autioTrack = mediaStream.getAudioTracks()[0];
-    if (autioTrack) {
-      mixStream.addTrack(autioTrack);
+    const audioTrack = mediaStream.getAudioTracks()[0];
+    if (audioTrack) {
+      mixStream.addTrack(audioTrack);
 
       // -- stop device audio --
-      autioTrack._stop = autioTrack.stop;
-      autioTrack.stop = function () {
+      audioTrack._stop = audioTrack.stop;
+      audioTrack.stop = function () {
         _debuglog('on webaudio track stop');
-        autioTrack._stop();
+        audioTrack._stop();
         stream.getAudioTracks().forEach(track => {
           _debuglog('stop device audio track');
           track.stop();
