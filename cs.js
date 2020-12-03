@@ -40,7 +40,7 @@ function main() {
             <input type="file" accept="audio/*" id="camix_audio_file" />
             <button id="camix_clear_file">clear</button>
             <br />
-            Audio Gain: <input type="range" id="camix_audio_file_range" min="0" max="200" value="100" step="1">Max(200%)
+            Audio Gain: <input type="range" id="camix_audio_file_range" min="0" max="120" value="80" step="1">Max(120%)
             &nbsp;
             <input type="checkbox" id="camix_playback_check" checked>Playback</input>
             <br />
